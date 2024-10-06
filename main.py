@@ -3,6 +3,7 @@ from tkinter import filedialog
 import cv2
 from PIL import Image, ImageTk
 import numpy as np
+from utils import apply_filter
 
 def load_image():
     global img_cv
@@ -40,67 +41,6 @@ def display_image(img, original=False):
         edited_image_canvas.image = img_tk
         edited_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
 
-def apply_filter(filter_type):
-    global img_cv
-    if img_cv is None:
-        return
-
-    filtered_img = None
-
-    # Filtros de Passa Baixo
-    if filter_type == "low_pass_gaussian":
-        filtered_img = cv2.GaussianBlur(img_cv, (15, 15), 0)
-    elif filter_type == "low_pass_mean":
-        filtered_img = cv2.blur(img_cv, (15, 15))
-    elif filter_type == "low_pass_median":
-        filtered_img = cv2.medianBlur(img_cv, 5)
-    
-    # Filtros de Passa Alto
-    elif filter_type == "high_pass_laplacian":
-        gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-        filtered = cv2.Laplacian(gray, cv2.CV_64F)
-        filtered = cv2.convertScaleAbs(filtered)
-        filtered_img = cv2.cvtColor(filtered, cv2.COLOR_GRAY2BGR)
-    elif filter_type == "high_pass_sobel":
-        gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-
-        # Kernel Sobel para detectar bordas na direção X
-        sobel_x = np.array([[-1, -2, -1],
-                             [0, 0, 0],
-                             [1, 2, 1]])
-
-        # Kernel Sobel para detectar bordas na direção Y
-        sobel_y = np.array([[-1, 0, 1],
-                             [-2, 0, 2],
-                             [-1, 0, 1]])
-
-        # Aplicar os filtros Sobel
-        edges_x = cv2.filter2D(gray, cv2.CV_64F, sobel_x)
-        edges_y = cv2.filter2D(gray, cv2.CV_64F, sobel_y)
-
-        # Combinar as bordas X e Y
-        filtered_img = cv2.sqrt(edges_x**2 + edges_y**2)
-        filtered_img = cv2.convertScaleAbs(filtered_img)
-        filtered_img = cv2.cvtColor(filtered_img, cv2.COLOR_GRAY2BGR)
-        
-    elif filter_type == "high_pass_roberts":
-        gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-
-        # Kernels de Roberts
-        roberts_x = np.array([[1, 0],
-                               [0, -1]])
-        roberts_y = np.array([[0, 1],
-                               [-1, 0]])
-
-        # Aplicar o filtro de Roberts
-        edges_x = cv2.filter2D(gray, cv2.CV_64F, roberts_x)
-        edges_y = cv2.filter2D(gray, cv2.CV_64F, roberts_y)
-        filtered_img = cv2.sqrt(edges_x**2 + edges_y**2)
-        filtered_img = cv2.convertScaleAbs(filtered_img)
-        filtered_img = cv2.cvtColor(filtered_img, cv2.COLOR_GRAY2BGR)
-
-    if filtered_img is not None:
-        display_image(filtered_img, original=False)  # Exibe a imagem editada
 
 def refresh_canvas():
     edited_image_canvas.delete("all")  # Limpa o canvas para exibir a nova imagem
@@ -133,17 +73,17 @@ menu_bar.add_cascade(label="Filters", menu=filters_menu)
 # Submenu Low Pass
 low_pass_menu = tk.Menu(filters_menu, tearoff=0)
 filters_menu.add_cascade(label="Low Pass Filter", menu=low_pass_menu)
-low_pass_menu.add_command(label="Gaussian", command=lambda: apply_filter("low_pass_gaussian"))
-low_pass_menu.add_command(label="Mean", command=lambda: apply_filter("low_pass_mean"))
-low_pass_menu.add_command(label="Median", command=lambda: apply_filter("low_pass_median"))
+low_pass_menu.add_command(label="Gaussian", command=lambda: apply_filter(img_cv, "low_pass_gaussian", display_image))
+low_pass_menu.add_command(label="Mean", command=lambda: apply_filter(img_cv, "low_pass_mean", display_image))
+low_pass_menu.add_command(label="Median", command=lambda: apply_filter(img_cv, "low_pass_median", display_image))
 
 
 # Submenu High Pass
 high_pass_menu = tk.Menu(filters_menu, tearoff=0)
 filters_menu.add_cascade(label="High Pass Filter", menu=high_pass_menu)
-high_pass_menu.add_command(label="Laplacian", command=lambda: apply_filter("high_pass_laplacian"))
-high_pass_menu.add_command(label="Sobel", command=lambda: apply_filter("high_pass_sobel"))
-high_pass_menu.add_command(label="Roberts", command=lambda: apply_filter("high_pass_roberts"))
+high_pass_menu.add_command(label="Laplacian", command=lambda: apply_filter(img_cv, "high_pass_laplacian", display_image))
+high_pass_menu.add_command(label="Sobel", command=lambda: apply_filter(img_cv, "high_pass_sobel", display_image))
+high_pass_menu.add_command(label="Roberts", command=lambda: apply_filter(img_cv, "high_pass_roberts", display_image))
 
 # Cria a canvas para a imagem original com borda (sem background)
 original_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
