@@ -3,7 +3,7 @@ from tkinter import filedialog
 import cv2
 from PIL import Image, ImageTk
 import numpy as np
-from utils import apply_filter
+from utils import apply_filter, apply_morphological_operation, apply_segmentation
 
 def load_image():
     global img_cv
@@ -54,6 +54,7 @@ root.geometry("1085x600")
 root.config(bg="#2e2e2e")
 
 img_cv = None
+segmented_img = None
 
 # Menu
 menu_bar = tk.Menu(root)
@@ -77,13 +78,26 @@ low_pass_menu.add_command(label="Gaussian", command=lambda: apply_filter(img_cv,
 low_pass_menu.add_command(label="Mean", command=lambda: apply_filter(img_cv, "low_pass_mean", display_image))
 low_pass_menu.add_command(label="Median", command=lambda: apply_filter(img_cv, "low_pass_median", display_image))
 
-
 # Submenu High Pass
 high_pass_menu = tk.Menu(filters_menu, tearoff=0)
 filters_menu.add_cascade(label="High Pass Filter", menu=high_pass_menu)
 high_pass_menu.add_command(label="Laplacian", command=lambda: apply_filter(img_cv, "high_pass_laplacian", display_image))
 high_pass_menu.add_command(label="Sobel", command=lambda: apply_filter(img_cv, "high_pass_sobel", display_image))
 high_pass_menu.add_command(label="Roberts", command=lambda: apply_filter(img_cv, "high_pass_roberts", display_image))
+
+# Segmentation menu
+segmentation_menu = tk.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="Segmentation", menu=segmentation_menu)
+segmentation_menu.add_command(label="Thresholding", command=lambda: apply_segmentation(img_cv, "threshold", display_image))
+segmentation_menu.add_command(label="Adaptive Thresholding", command=lambda: apply_segmentation(img_cv, "adaptive_threshold", display_image))
+
+# Morphological Operations menu
+morph_menu = tk.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="Morphological Operations", menu=morph_menu)
+morph_menu.add_command(label="Erosion", command=lambda: apply_morphological_operation("erosion", display_image))
+morph_menu.add_command(label="Dilation", command=lambda: apply_morphological_operation("dilation", display_image))
+morph_menu.add_command(label="Opening", command=lambda: apply_morphological_operation("opening", display_image))
+morph_menu.add_command(label="Closing", command=lambda: apply_morphological_operation("closing", display_image))
 
 # Cria a canvas para a imagem original com borda (sem background)
 original_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
