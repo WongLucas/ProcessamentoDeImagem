@@ -56,10 +56,6 @@ def refresh_canvas():
     original_image_canvas.delete("all")  # Limpa o canvas para exibir a nova imagem
     modified_image_canvas.delete("all")  # Limpa o canvas para exibir a nova imagem
 
-def update_filter(filter_type):
-    kernel_size = kernel_size_slider.get()
-    apply_filter(img_cv, filter_type, display_image, kernel_size)
-
 # Definindo a GUI
 root = tk.Tk()
 root.title("Image Processing App")
@@ -85,9 +81,9 @@ file_menu.add_command(label="Exit", command=root.quit)
 # Low Pass Filter menu
 low_pass_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Low Pass Filter", menu=low_pass_menu)
-low_pass_menu.add_command(label="Gaussian", command=lambda: update_filter("low_pass_gaussian"))
-low_pass_menu.add_command(label="Mean", command=lambda: update_filter("low_pass_mean"))
-low_pass_menu.add_command(label="Median", command=lambda: update_filter("low_pass_median"))
+low_pass_menu.add_command(label="Gaussian", command=lambda: apply_filter(img_cv, "low_pass_gaussian", display_image))
+low_pass_menu.add_command(label="Mean", command=lambda: apply_filter(img_cv, "low_pass_mean", display_image))
+low_pass_menu.add_command(label="Median", command=lambda: apply_filter(img_cv, "low_pass_median", display_image))
 
 # High Pass Filter menu
 high_pass_menu = tk.Menu(menu_bar, tearoff=0)
@@ -122,10 +118,5 @@ modified_image_canvas.grid(row=0, column=1, padx=20, pady=20)
 # Botão para aprovar a mudança
 approve_button = tk.Button(root, text="Approve Change", command=approve_change)
 approve_button.grid(row=1, column=0, columnspan=2, pady=10)
-
-# Controle deslizante para ajustar o tamanho do kernel
-kernel_size_slider = tk.Scale(root, from_=3, to=15, orient=tk.HORIZONTAL, label="Kernel Size", command=lambda x: update_filter("low_pass_gaussian"))
-kernel_size_slider.set(5)
-kernel_size_slider.grid(row=2, column=0, columnspan=2, pady=10)
 
 root.mainloop()
