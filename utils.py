@@ -34,29 +34,25 @@ def erosion_manual(image, kernel_size=5):
 
     return dilated_image
 
-def apply_filter(img_cv, filter_type, display_image):
+def apply_filter(img_cv, filter_type, display_image, kernel_size=5):
     if img_cv is None:
         return
 
+    # Verifica se a imagem está em escala de cinza e converte para RGB se necessário
     if len(img_cv.shape) == 2 or img_cv.shape[2] == 1:
-        img_cv = cv2.cvtColor(img_cv, cv2.COLOR_GRAY2BGR)
+        img_cv = np.stack((img_cv,) * 3, axis=-1)
 
     filtered_img = None
 
     # Filtros de Passa Baixo
     if filter_type == "low_pass_gaussian":
-        kernel = np.array([[1, 4, 6, 4, 1],
-                           [4, 16, 24, 16, 4],
-                           [6, 24, 36, 24, 6],
-                           [4, 16, 24, 16, 4],
-                           [1, 4, 6, 4, 1]]) / 256.0
+        kernel = np.outer(cv2.getGaussianKernel(kernel_size, -1), cv2.getGaussianKernel(kernel_size, -1))
         filtered_img = np.zeros_like(img_cv)
         for i in range(3):  # Aplica o filtro a cada canal
             filtered_img[:, :, i] = convolve(img_cv[:, :, i], kernel)
 
     elif filter_type == "low_pass_mean":
-        # Kernel de Média 5x5
-        kernel = np.ones((5, 5)) / 25.0
+        kernel = np.ones((kernel_size, kernel_size)) / (kernel_size * kernel_size)
         filtered_img = np.zeros_like(img_cv)
         for i in range(3):  # Aplica o filtro a cada canal
             filtered_img[:, :, i] = convolve(img_cv[:, :, i], kernel)
