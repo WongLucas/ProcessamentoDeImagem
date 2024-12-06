@@ -34,7 +34,11 @@ def erosion_manual(image, kernel_size=5):
 
     return dilated_image
 
-def apply_filter(img_cv, filter_type, display_image):
+import numpy as np
+import cv2
+from scipy.ndimage import convolve
+
+def apply_filter(img_cv, filter_type, display_image, kernel_size=5):
     if img_cv is None:
         return
 
@@ -45,24 +49,20 @@ def apply_filter(img_cv, filter_type, display_image):
 
     # Filtros de Passa Baixo
     if filter_type == "low_pass_gaussian":
-        kernel = np.array([[1, 4, 6, 4, 1],
-                           [4, 16, 24, 16, 4],
-                           [6, 24, 36, 24, 6],
-                           [4, 16, 24, 16, 4],
-                           [1, 4, 6, 4, 1]]) / 256.0
+        kernel = cv2.getGaussianKernel(kernel_size, -1)
+        kernel = kernel @ kernel.T
         filtered_img = np.zeros_like(img_cv)
         for i in range(3):  # Aplica o filtro a cada canal
             filtered_img[:, :, i] = convolve(img_cv[:, :, i], kernel)
 
     elif filter_type == "low_pass_mean":
-        # Kernel de Média 5x5
-        kernel = np.ones((5, 5)) / 25.0
+        kernel = np.ones((kernel_size, kernel_size)) / (kernel_size * kernel_size)
         filtered_img = np.zeros_like(img_cv)
         for i in range(3):  # Aplica o filtro a cada canal
             filtered_img[:, :, i] = convolve(img_cv[:, :, i], kernel)
 
     elif filter_type == "low_pass_median":
-        filtered_img = cv2.medianBlur(img_cv, 5)
+        filtered_img = cv2.medianBlur(img_cv, kernel_size)
 
     # Filtros de Passa Alto
     elif filter_type == "high_pass_laplacian":

@@ -56,16 +56,39 @@ def refresh_canvas():
     original_image_canvas.delete("all")  # Limpa o canvas para exibir a nova imagem
     modified_image_canvas.delete("all")  # Limpa o canvas para exibir a nova imagem
 
+def update_filter(filter_type):
+    global current_filter
+    current_filter = filter_type
+    kernel_size = kernel_size_slider.get()
+    apply_filter(img_cv, filter_type, display_image, kernel_size)
+    if filter_type in ["low_pass_gaussian", "low_pass_mean", "low_pass_median"]:
+        kernel_size_slider.grid(row=2, column=0, columnspan=2, pady=10)
+    else:
+        kernel_size_slider.grid_remove()
+
+def apply_segmentation_filter(filter_type):
+    global current_filter
+    current_filter = filter_type
+    apply_segmentation(img_cv, filter_type, display_image)
+    kernel_size_slider.grid_remove()
+
+def apply_morphological_filter(filter_type):
+    global current_filter
+    current_filter = filter_type
+    apply_morphological_operation(img_cv, filter_type, display_image)
+    kernel_size_slider.grid_remove()
+
 # Definindo a GUI
 root = tk.Tk()
 root.title("Image Processing App")
 
 # Define o tamanho da janela da aplicação
-root.geometry("1085x600")
+root.geometry("1085x700")
 root.config(bg="#2e2e2e")
 
 img_cv = None
 modified_img_cv = None
+current_filter = "low_pass_gaussian"  # Filtro padrão inicial
 
 # Menu
 menu_bar = tk.Menu(root)
@@ -81,31 +104,31 @@ file_menu.add_command(label="Exit", command=root.quit)
 # Low Pass Filter menu
 low_pass_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Low Pass Filter", menu=low_pass_menu)
-low_pass_menu.add_command(label="Gaussian", command=lambda: apply_filter(img_cv, "low_pass_gaussian", display_image))
-low_pass_menu.add_command(label="Mean", command=lambda: apply_filter(img_cv, "low_pass_mean", display_image))
-low_pass_menu.add_command(label="Median", command=lambda: apply_filter(img_cv, "low_pass_median", display_image))
+low_pass_menu.add_command(label="Gaussian", command=lambda: update_filter("low_pass_gaussian"))
+low_pass_menu.add_command(label="Mean", command=lambda: update_filter("low_pass_mean"))
+low_pass_menu.add_command(label="Median", command=lambda: update_filter("low_pass_median"))
 
 # High Pass Filter menu
 high_pass_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="High Pass Filter", menu=high_pass_menu)
-high_pass_menu.add_command(label="Laplacian", command=lambda: apply_filter(img_cv, "high_pass_laplacian", display_image))
-high_pass_menu.add_command(label="Sobel", command=lambda: apply_filter(img_cv, "high_pass_sobel", display_image))
-high_pass_menu.add_command(label="Roberts", command=lambda: apply_filter(img_cv, "high_pass_roberts", display_image))
+high_pass_menu.add_command(label="Laplacian", command=lambda: update_filter("high_pass_laplacian"))
+high_pass_menu.add_command(label="Sobel", command=lambda: update_filter("high_pass_sobel"))
+high_pass_menu.add_command(label="Roberts", command=lambda: update_filter("high_pass_roberts"))
 
 # Segmentation menu
 segmentation_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Segmentation", menu=segmentation_menu)
-segmentation_menu.add_command(label="Thresholding", command=lambda: apply_segmentation(img_cv, "threshold", display_image))
-segmentation_menu.add_command(label="Adaptive Thresholding", command=lambda: apply_segmentation(img_cv, "adaptive_threshold", display_image))
+segmentation_menu.add_command(label="Thresholding", command=lambda: apply_segmentation_filter("threshold"))
+segmentation_menu.add_command(label="Adaptive Thresholding", command=lambda: apply_segmentation_filter("adaptive_threshold"))
 
 # Morphological Operations menu
 morph_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Morphological Operations", menu=morph_menu)
-morph_menu.add_command(label="Erosion", command=lambda: apply_morphological_operation(img_cv, "erosion", display_image))
-morph_menu.add_command(label="Dilation", command=lambda: apply_morphological_operation(img_cv, "dilation", display_image))
-morph_menu.add_command(label="Opening", command=lambda: apply_morphological_operation(img_cv, "opening", display_image))
-morph_menu.add_command(label="Closing", command=lambda: apply_morphological_operation(img_cv, "closing", display_image))
-morph_menu.add_command(label="Opening and Closing", command=lambda: apply_morphological_operation(img_cv, "opening_closing", display_image))
+morph_menu.add_command(label="Erosion", command=lambda: apply_morphological_filter("erosion"))
+morph_menu.add_command(label="Dilation", command=lambda: apply_morphological_filter("dilation"))
+morph_menu.add_command(label="Opening", command=lambda: apply_morphological_filter("opening"))
+morph_menu.add_command(label="Closing", command=lambda: apply_morphological_filter("closing"))
+morph_menu.add_command(label="Opening and Closing", command=lambda: apply_morphological_filter("opening_closing"))
 
 # Cria a canvas para a imagem original com borda (sem background)
 original_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
@@ -118,5 +141,10 @@ modified_image_canvas.grid(row=0, column=1, padx=20, pady=20)
 # Botão para aprovar a mudança
 approve_button = tk.Button(root, text="Approve Change", command=approve_change)
 approve_button.grid(row=1, column=0, columnspan=2, pady=10)
+
+# Controle deslizante para ajustar o tamanho do kernel
+kernel_size_slider = tk.Scale(root, from_=3, to=15, orient=tk.HORIZONTAL, label="Kernel Size", command=lambda x: update_filter(current_filter))
+kernel_size_slider.set(5)
+kernel_size_slider.grid_remove()  # Inicialmente oculto
 
 root.mainloop()
