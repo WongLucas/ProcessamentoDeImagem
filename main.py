@@ -15,10 +15,15 @@ def load_image():
     )
     if file_path:
         img_cv = cv2.imread(file_path)
-        display_image(img_cv, original=True)  # Exibe a imagem original
-        refresh_canvas()
+        display_image(img_cv, modified=False)  # Exibe a imagem original
 
-def display_image(img, original=False):
+def display_image(img, modified=False):
+    global img_cv, modified_img_cv
+    if modified:
+        modified_img_cv = img  # Atualiza a imagem modificada
+    else:
+        img_cv = img  # Atualiza a imagem atual
+
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_pil = Image.fromarray(img_rgb)
     
@@ -32,18 +37,24 @@ def display_image(img, original=False):
     x_offset = (canvas_width - img_pil.width) // 2
     y_offset = (canvas_height - img_pil.height) // 2
 
-    if original:
+    if modified:
+        modified_image_canvas.delete("all")  # Limpa o canvas
+        modified_image_canvas.image = img_tk  # Mantém a referência viva
+        modified_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
+    else:
         original_image_canvas.delete("all")  # Limpa o canvas
         original_image_canvas.image = img_tk  # Mantém a referência viva
         original_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
-    else:
-        edited_image_canvas.delete("all")  # Limpa o canvas
-        edited_image_canvas.image = img_tk
-        edited_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
 
+def approve_change():
+    global img_cv, modified_img_cv
+    if modified_img_cv is not None:
+        img_cv = modified_img_cv
+        display_image(img_cv, modified=False)  # Atualiza a imagem atual com a modificada
 
 def refresh_canvas():
-    edited_image_canvas.delete("all")  # Limpa o canvas para exibir a nova imagem
+    original_image_canvas.delete("all")  # Limpa o canvas para exibir a nova imagem
+    modified_image_canvas.delete("all")  # Limpa o canvas para exibir a nova imagem
 
 # Definindo a GUI
 root = tk.Tk()
@@ -54,7 +65,7 @@ root.geometry("1085x600")
 root.config(bg="#2e2e2e")
 
 img_cv = None
-segmented_img = None
+modified_img_cv = None
 
 # Menu
 menu_bar = tk.Menu(root)
@@ -67,20 +78,16 @@ file_menu.add_command(label="Load Image", command=load_image)
 file_menu.add_separator()
 file_menu.add_command(label="Exit", command=root.quit)
 
-# Filters menu com submenus para Passa Baixo e Passa Alto
-filters_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label="Filters", menu=filters_menu)
-
-# Submenu Low Pass
-low_pass_menu = tk.Menu(filters_menu, tearoff=0)
-filters_menu.add_cascade(label="Low Pass Filter", menu=low_pass_menu)
+# Low Pass Filter menu
+low_pass_menu = tk.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="Low Pass Filter", menu=low_pass_menu)
 low_pass_menu.add_command(label="Gaussian", command=lambda: apply_filter(img_cv, "low_pass_gaussian", display_image))
 low_pass_menu.add_command(label="Mean", command=lambda: apply_filter(img_cv, "low_pass_mean", display_image))
 low_pass_menu.add_command(label="Median", command=lambda: apply_filter(img_cv, "low_pass_median", display_image))
 
-# Submenu High Pass
-high_pass_menu = tk.Menu(filters_menu, tearoff=0)
-filters_menu.add_cascade(label="High Pass Filter", menu=high_pass_menu)
+# High Pass Filter menu
+high_pass_menu = tk.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="High Pass Filter", menu=high_pass_menu)
 high_pass_menu.add_command(label="Laplacian", command=lambda: apply_filter(img_cv, "high_pass_laplacian", display_image))
 high_pass_menu.add_command(label="Sobel", command=lambda: apply_filter(img_cv, "high_pass_sobel", display_image))
 high_pass_menu.add_command(label="Roberts", command=lambda: apply_filter(img_cv, "high_pass_roberts", display_image))
@@ -94,17 +101,22 @@ segmentation_menu.add_command(label="Adaptive Thresholding", command=lambda: app
 # Morphological Operations menu
 morph_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Morphological Operations", menu=morph_menu)
-morph_menu.add_command(label="Erosion", command=lambda: apply_morphological_operation("erosion", display_image))
-morph_menu.add_command(label="Dilation", command=lambda: apply_morphological_operation("dilation", display_image))
-morph_menu.add_command(label="Opening", command=lambda: apply_morphological_operation("opening", display_image))
-morph_menu.add_command(label="Closing", command=lambda: apply_morphological_operation("closing", display_image))
+morph_menu.add_command(label="Erosion", command=lambda: apply_morphological_operation(img_cv, "erosion", display_image))
+morph_menu.add_command(label="Dilation", command=lambda: apply_morphological_operation(img_cv, "dilation", display_image))
+morph_menu.add_command(label="Opening", command=lambda: apply_morphological_operation(img_cv, "opening", display_image))
+morph_menu.add_command(label="Closing", command=lambda: apply_morphological_operation(img_cv, "closing", display_image))
+morph_menu.add_command(label="Opening and Closing", command=lambda: apply_morphological_operation(img_cv, "opening_closing", display_image))
 
 # Cria a canvas para a imagem original com borda (sem background)
 original_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
 original_image_canvas.grid(row=0, column=0, padx=20, pady=20)
 
-# Cria a canvas para a imagem editada com borda (sem background)
-edited_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
-edited_image_canvas.grid(row=0, column=1, padx=20, pady=20)
+# Cria a canvas para a imagem modificada com borda (sem background)
+modified_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
+modified_image_canvas.grid(row=0, column=1, padx=20, pady=20)
+
+# Botão para aprovar a mudança
+approve_button = tk.Button(root, text="Approve Change", command=approve_change)
+approve_button.grid(row=1, column=0, columnspan=2, pady=10)
 
 root.mainloop()
