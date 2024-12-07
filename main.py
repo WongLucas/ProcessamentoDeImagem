@@ -60,30 +60,59 @@ def update_filter(filter_type):
     global current_filter
     current_filter = filter_type
     kernel_size = kernel_size_slider.get()
-    apply_filter(img_cv, filter_type, display_image, kernel_size)
+    scale = scale_slider.get()
+    delta = delta_slider.get()
+    apply_filter(img_cv, filter_type, display_image, kernel_size, scale, delta)
     if filter_type in ["low_pass_gaussian", "low_pass_mean", "low_pass_median"]:
-        kernel_size_slider.grid(row=2, column=0, columnspan=2, pady=10)
+        kernel_size_slider.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+        scale_slider.grid_remove()
+        delta_slider.grid_remove()
+    elif filter_type in ["high_pass_laplacian", "high_pass_sobel", "high_pass_roberts"]:
+        kernel_size_slider.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+        scale_slider.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
+        delta_slider.grid(row=2, column=0, padx=5, pady=10, sticky="ew")
     else:
         kernel_size_slider.grid_remove()
+        scale_slider.grid_remove()
+        delta_slider.grid_remove()
 
 def apply_segmentation_filter(filter_type):
     global current_filter
     current_filter = filter_type
-    apply_segmentation(img_cv, filter_type, display_image)
-    kernel_size_slider.grid_remove()
+    threshold = threshold_slider.get()
+    block_size = block_size_slider.get()
+    C = C_slider.get()
+    apply_segmentation(img_cv, filter_type, display_image, threshold, block_size, C)
+    if filter_type == "threshold":
+        threshold_slider.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+        block_size_slider.grid_remove()
+        C_slider.grid_remove()
+    elif filter_type == "adaptive_threshold":
+        threshold_slider.grid_remove()
+        block_size_slider.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+        C_slider.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
+    else:
+        threshold_slider.grid_remove()
+        block_size_slider.grid_remove()
+        C_slider.grid_remove()
 
 def apply_morphological_filter(filter_type):
     global current_filter
     current_filter = filter_type
     apply_morphological_operation(img_cv, filter_type, display_image)
     kernel_size_slider.grid_remove()
+    scale_slider.grid_remove()
+    delta_slider.grid_remove()
+    threshold_slider.grid_remove()
+    block_size_slider.grid_remove()
+    C_slider.grid_remove()
 
 # Definindo a GUI
 root = tk.Tk()
 root.title("Image Processing App")
 
 # Define o tamanho da janela da aplicação
-root.geometry("1085x700")
+root.geometry("1300x700")
 root.config(bg="#2e2e2e")
 
 img_cv = None
@@ -131,20 +160,55 @@ morph_menu.add_command(label="Closing", command=lambda: apply_morphological_filt
 morph_menu.add_command(label="Opening and Closing", command=lambda: apply_morphological_filter("opening_closing"))
 
 # Cria a canvas para a imagem original com borda (sem background)
-original_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
+original_image_canvas = tk.Canvas(root, width=550, height=550, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
 original_image_canvas.grid(row=0, column=0, padx=20, pady=20)
 
 # Cria a canvas para a imagem modificada com borda (sem background)
-modified_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
+modified_image_canvas = tk.Canvas(root, width=550, height=550, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
 modified_image_canvas.grid(row=0, column=1, padx=20, pady=20)
+
+# Frame para os sliders
+slider_frame = tk.Frame(root, bg="#2e2e2e")
+slider_frame.grid(row=0, column=3, columnspan=2, pady=10)
 
 # Botão para aprovar a mudança
 approve_button = tk.Button(root, text="Approve Change", command=approve_change)
-approve_button.grid(row=1, column=0, columnspan=2, pady=10)
+approve_button.grid(row=2, column=0, columnspan=2, pady=10)
 
 # Controle deslizante para ajustar o tamanho do kernel
-kernel_size_slider = tk.Scale(root, from_=3, to=15, orient=tk.HORIZONTAL, label="Kernel Size", command=lambda x: update_filter(current_filter))
+kernel_size_slider = tk.Scale(slider_frame, from_=3, to=31, orient=tk.HORIZONTAL, label="Kernel Size", command=lambda x: update_filter(current_filter))
 kernel_size_slider.set(5)
+kernel_size_slider.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
 kernel_size_slider.grid_remove()  # Inicialmente oculto
+
+# Controle deslizante para ajustar a escala
+scale_slider = tk.Scale(slider_frame, from_=1, to=10, orient=tk.HORIZONTAL, label="Scale", command=lambda x: update_filter(current_filter))
+scale_slider.set(1)
+scale_slider.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
+scale_slider.grid_remove()  # Inicialmente oculto
+
+# Controle deslizante para ajustar o delta
+delta_slider = tk.Scale(slider_frame, from_=0, to=100, orient=tk.HORIZONTAL, label="Delta", command=lambda x: update_filter(current_filter))
+delta_slider.set(0)
+delta_slider.grid(row=2, column=0, padx=5, pady=10, sticky="ew")
+delta_slider.grid_remove()  # Inicialmente oculto
+
+# Controle deslizante para ajustar o threshold
+threshold_slider = tk.Scale(slider_frame, from_=0, to=255, orient=tk.HORIZONTAL, label="Threshold", command=lambda x: apply_segmentation_filter(current_filter))
+threshold_slider.set(127)
+threshold_slider.grid(row=3, column=0, padx=5, pady=10, sticky="ew")
+threshold_slider.grid_remove()  # Inicialmente oculto
+
+# Controle deslizante para ajustar o block size
+block_size_slider = tk.Scale(slider_frame, from_=3, to=31, orient=tk.HORIZONTAL, label="Block Size", command=lambda x: apply_segmentation_filter(current_filter))
+block_size_slider.set(11)
+block_size_slider.grid(row=4, column=0, padx=5, pady=10, sticky="ew")
+block_size_slider.grid_remove()  # Inicialmente oculto
+
+# Controle deslizante para ajustar o C
+C_slider = tk.Scale(slider_frame, from_=-10, to=10, orient=tk.HORIZONTAL, label="C", command=lambda x: apply_segmentation_filter(current_filter))
+C_slider.set(2)
+C_slider.grid(row=5, column=0, padx=5, pady=10, sticky="ew")
+C_slider.grid_remove()  # Inicialmente oculto
 
 root.mainloop()

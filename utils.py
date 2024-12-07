@@ -2,8 +2,6 @@ import numpy as np
 import cv2
 from scipy.ndimage import convolve
 
-
-
 def dilation_manual(image, kernel_size=5):
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     eroded_image = np.zeros_like(image)
@@ -34,11 +32,7 @@ def erosion_manual(image, kernel_size=5):
 
     return dilated_image
 
-import numpy as np
-import cv2
-from scipy.ndimage import convolve
-
-def apply_filter(img_cv, filter_type, display_image, kernel_size=5):
+def apply_filter(img_cv, filter_type, display_image, kernel_size=5, scale=1, delta=0):
     if img_cv is None:
         return
 
@@ -46,6 +40,12 @@ def apply_filter(img_cv, filter_type, display_image, kernel_size=5):
         img_cv = cv2.cvtColor(img_cv, cv2.COLOR_GRAY2BGR)
 
     filtered_img = None
+
+    # Garantir que o kernel_size seja ímpar e não maior que 31
+    if kernel_size % 2 == 0:
+        kernel_size += 1
+    if kernel_size > 31:
+        kernel_size = 31
 
     # Filtros de Passa Baixo
     if filter_type == "low_pass_gaussian":
@@ -67,50 +67,32 @@ def apply_filter(img_cv, filter_type, display_image, kernel_size=5):
     # Filtros de Passa Alto
     elif filter_type == "high_pass_laplacian":
         gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-        filtered = cv2.Laplacian(gray, cv2.CV_64F)
+        filtered = cv2.Laplacian(gray, cv2.CV_64F, ksize=kernel_size, scale=scale, delta=delta)
         filtered = cv2.convertScaleAbs(filtered)
         filtered_img = cv2.cvtColor(filtered, cv2.COLOR_GRAY2BGR)
         
     elif filter_type == "high_pass_sobel":
         gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-
-        # Kernel Sobel para detectar bordas na direção X
-        sobel_x = np.array([[-1, -2, -1],
-                             [0, 0, 0],
-                             [1, 2, 1]])
-
-        # Kernel Sobel para detectar bordas na direção Y
-        sobel_y = np.array([[-1, 0, 1],
-                             [-2, 0, 2],
-                             [-1, 0, 1]])
-
-        # Aplicar os filtros Sobel
-        edges_x = cv2.filter2D(gray, cv2.CV_64F, sobel_x)
-        edges_y = cv2.filter2D(gray, cv2.CV_64F, sobel_y)
-
-        # Combinar as bordas X e Y
-        filtered_img = cv2.sqrt(edges_x**2 + edges_y**2)
-        filtered_img = cv2.convertScaleAbs(filtered_img)
-        filtered_img = cv2.cvtColor(filtered_img, cv2.COLOR_GRAY2BGR)
+        sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=kernel_size, scale=scale, delta=delta)
+        sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=kernel_size, scale=scale, delta=delta)
+        filtered = cv2.sqrt(sobel_x**2 + sobel_y**2)
+        filtered = cv2.convertScaleAbs(filtered)
+        filtered_img = cv2.cvtColor(filtered, cv2.COLOR_GRAY2BGR)
         
     elif filter_type == "high_pass_roberts":
         gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-
-        roberts_x = np.array([[1, 0],
-                               [0, -1]])
-        roberts_y = np.array([[0, 1],
-                               [-1, 0]])
-
+        roberts_x = np.array([[1, 0], [0, -1]])
+        roberts_y = np.array([[0, 1], [-1, 0]])
         edges_x = cv2.filter2D(gray, cv2.CV_64F, roberts_x)
         edges_y = cv2.filter2D(gray, cv2.CV_64F, roberts_y)
-        filtered_img = cv2.sqrt(edges_x**2 + edges_y**2)
-        filtered_img = cv2.convertScaleAbs(filtered_img)
-        filtered_img = cv2.cvtColor(filtered_img, cv2.COLOR_GRAY2BGR)
+        filtered = cv2.sqrt(edges_x**2 + edges_y**2)
+        filtered = cv2.convertScaleAbs(filtered)
+        filtered_img = cv2.cvtColor(filtered, cv2.COLOR_GRAY2BGR)
 
     if filtered_img is not None:
         display_image(filtered_img, modified=True)  # Exibe a imagem editada
 
-def apply_segmentation(img_cv, segmentation_type, display_image):
+def apply_segmentation(img_cv, segmentation_type, display_image, threshold=127, block_size=11, C=2):
     if img_cv is None:
         return
 
@@ -120,9 +102,9 @@ def apply_segmentation(img_cv, segmentation_type, display_image):
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
 
     if segmentation_type == "threshold":
-        segmented_img = global_threshold(gray, threshold=127)
+        segmented_img = global_threshold(gray, threshold=threshold)
     elif segmentation_type == "adaptive_threshold":
-        segmented_img = adaptive_threshold(gray, block_size=15, C=4)
+        segmented_img = adaptive_threshold(gray, block_size=block_size, C=C)
 
     if segmented_img is not None:
         display_image(segmented_img, modified=True)  # Exibe a imagem editada
@@ -146,12 +128,13 @@ def adaptive_threshold(image_array, block_size=11, C=2):
     # Itera por cada pixel na imagem
     for i in range(offset, height - offset):
         for j in range(offset, width - offset):
-            # Extrai a região de vizinhança
-            neighborhood = image_array[i - offset:i + offset + 1, j - offset:j + offset + 1]
-            # Calcula o threshold como a média da vizinhança menos C
-            threshold = neighborhood.mean() - C
-            # Aplica o threshold ao pixel atual
-            binary_image[i, j] = 255 if image_array[i, j] > threshold else 0
+            # Calcula a média dos pixels na vizinhança
+            local_mean = np.mean(image_array[i-offset:i+offset+1, j-offset:j+offset+1])
+            # Aplica o threshold adaptativo
+            if image_array[i, j] > local_mean - C:
+                binary_image[i, j] = 255
+            else:
+                binary_image[i, j] = 0
 
     return binary_image.astype(np.uint8)
 
@@ -170,8 +153,8 @@ def apply_morphological_operation(img_cv, operation_type, display_image):
         eroded_image = erosion_manual(img_cv, kernel_size=5)
         morphed_img = dilation_manual(eroded_image, kernel_size=5)
     elif operation_type == "closing":
-        dilated_image = erosion_manual(img_cv, kernel_size=5)
-        morphed_img = dilation_manual(dilated_image, kernel_size=5)
+        dilated_image = dilation_manual(img_cv, kernel_size=5)
+        morphed_img = erosion_manual(dilated_image, kernel_size=5)
     elif operation_type == "opening_closing":
         eroded_image = erosion_manual(img_cv, kernel_size=5)
         opened_image = dilation_manual(eroded_image, kernel_size=5)
