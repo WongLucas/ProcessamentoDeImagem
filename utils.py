@@ -138,7 +138,7 @@ def adaptive_threshold(image_array, block_size=11, C=2):
 
     return binary_image.astype(np.uint8)
 
-def apply_morphological_operation(img_cv, operation_type, display_image):
+def apply_morphological_operation(img_cv, operation_type, display_image, kernel_size=5, iterations=1):
     if img_cv is None:
         return
 
@@ -146,20 +146,20 @@ def apply_morphological_operation(img_cv, operation_type, display_image):
     morphed_img = None
 
     if operation_type == "erosion":
-        morphed_img = erosion_manual(img_cv, kernel_size=5)
+        morphed_img = erosion_manual(img_cv, kernel_size=kernel_size)
     elif operation_type == "dilation":
-        morphed_img = dilation_manual(img_cv, kernel_size=5)
+        morphed_img = dilation_manual(img_cv, kernel_size=kernel_size)
     elif operation_type == "opening":
-        eroded_image = erosion_manual(img_cv, kernel_size=5)
-        morphed_img = dilation_manual(eroded_image, kernel_size=5)
+        eroded_image = erosion_manual(img_cv, kernel_size=kernel_size)
+        morphed_img = dilation_manual(eroded_image, kernel_size=kernel_size)
     elif operation_type == "closing":
-        dilated_image = dilation_manual(img_cv, kernel_size=5)
-        morphed_img = erosion_manual(dilated_image, kernel_size=5)
+        dilated_image = dilation_manual(img_cv, kernel_size=kernel_size)
+        morphed_img = erosion_manual(dilated_image, kernel_size=kernel_size)
     elif operation_type == "opening_closing":
-        eroded_image = erosion_manual(img_cv, kernel_size=5)
-        opened_image = dilation_manual(eroded_image, kernel_size=5)
-        dilated_image = dilation_manual(opened_image, kernel_size=5)
-        morphed_img = erosion_manual(dilated_image, kernel_size=5)
+        eroded_image = erosion_manual(img_cv, kernel_size=kernel_size)
+        opened_image = dilation_manual(eroded_image, kernel_size=kernel_size)
+        dilated_image = dilation_manual(opened_image, kernel_size=kernel_size)
+        morphed_img = erosion_manual(dilated_image, kernel_size=kernel_size)
 
     if morphed_img is not None:
         display_image(morphed_img, modified=True)  # Exibe a imagem editada
